@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Secure Chat</title>
+
+    <!-- Link CSS -->
+    <link rel="stylesheet" href="/style.css">
+
+    <!-- WebSocket Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs/lib/stomp.min.js"></script>
+</head>
+<body>
+
+<div class="chat-container">
+
+    <div class="chat-header">
+        🔐 Secure Chat
+    </div>
+
+    <div id="chatBox" class="chat-box"></div>
+
+    <div class="chat-input">
+        <input id="msg" placeholder="Type a message">
+        <input id="key" placeholder="Key">
+
+        <select id="mode">
+            <option value="encrypt">Encrypt</option>
+            <option value="decrypt">Decrypt</option>
+        </select>
+
+        <button onclick="send()">Send</button>
+    </div>
+
+</div>
+
+<script>
+    let stompClient = null;
+
+    function connect() {
+        let socket = new SockJS('/chat');
+        stompClient = Stomp.over(socket);
+
+        stompClient.connect({}, function () {
+            stompClient.subscribe('/topic/messages', function (message) {
+                showMessage(message.body, false);
+            });
+        });
+    }
+
+    function send() {
+        let msg = document.getElementById("msg").value;
+
+        let data = {
+            content: msg,
+            key: document.getElementById("key").value,
+            mode: document.getElementById("mode").value
+        };
+
+        showMessage(msg, true);
+
+        stompClient.send("/app/send", {}, JSON.stringify(data));
+
+        document.getElementById("msg").value = "";
+    }
+
+    function showMessage(message, isSender) {
+        let div = document.createElement("div");
+        div.className = isSender ? "message sender" : "message receiver";
+        div.textContent = message;
+
+        document.getElementById("chatBox").appendChild(div);
+
+        // Auto scroll
+        document.getElementById("chatBox").scrollTop =
+            document.getElementById("chatBox").scrollHeight;
+    }
+
+    connect();
+</script>
+
+</body>
